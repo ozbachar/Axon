@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ניתוח פיננסי – אקסון ויז'ן AXN</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f3f4f6; color: #1f2937; direction: rtl; }
+  .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+  /* Header */
+  .header { background: #fff; border-radius: 16px; padding: 20px 24px; margin-bottom: 16px; border: 1px solid #e5e7eb; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .header h1 { font-size: 22px; font-weight: 700; color: #111827; }
+  .header p { font-size: 13px; color: #6b7280; margin-top: 4px; }
+  .badges { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; }
+  .badge { font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 999px; text-align: center; }
+  .badge-blue { background: #dbeafe; color: #1d4ed8; }
+  .badge-yellow { background: #fef3c7; color: #92400e; }
+
+  /* Tabs */
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  .tab { padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #e5e7eb; background: #fff; color: #4b5563; transition: all 0.2s; }
+  .tab.active { background: #2563eb; color: #fff; border-color: #2563eb; box-shadow: 0 2px 6px rgba(37,99,235,0.3); }
+  .tab:hover:not(.active) { background: #f9fafb; }
+
+  /* Cards */
+  .card { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 16px; }
+  .card h2 { font-size: 15px; font-weight: 700; color: #374151; margin-bottom: 14px; }
+  .card p.sub { font-size: 11px; color: #9ca3af; margin-top: -10px; margin-bottom: 14px; }
+
+  /* KPI grid */
+  .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  @media(max-width:600px){ .kpi-grid { grid-template-columns: repeat(2,1fr); } }
+  .kpi { border-radius: 14px; border: 2px solid; padding: 12px; }
+  .kpi .lbl { font-size: 11px; color: #6b7280; margin-bottom: 4px; line-height: 1.3; }
+  .kpi .val { font-size: 18px; font-weight: 700; color: #111827; }
+  .kpi .note { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  .kpi-blue   { border-color: #93c5fd; background: #eff6ff; }
+  .kpi-green  { border-color: #6ee7b7; background: #f0fdf4; }
+  .kpi-red    { border-color: #fca5a5; background: #fef2f2; }
+  .kpi-red2   { border-color: #ef4444; background: #fef2f2; }
+  .kpi-orange { border-color: #fdba74; background: #fff7ed; }
+  .kpi-yellow { border-color: #fcd34d; background: #fffbeb; }
+
+  /* Insight boxes */
+  .insight { display: flex; gap: 10px; padding: 12px; border-radius: 10px; border: 1px solid; margin-bottom: 8px; font-size: 13px; }
+  .insight .icon { font-size: 18px; flex-shrink: 0; }
+  .insight strong { display: block; margin-bottom: 2px; }
+  .ins-green  { background: #f0fdf4; border-color: #6ee7b7; color: #166534; }
+  .ins-red    { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+  .ins-orange { background: #fff7ed; border-color: #fdba74; color: #92400e; }
+  .ins-blue   { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+  .ins-amber  { background: #fffbeb; border-color: #fcd34d; color: #78350f; }
+
+  /* Table */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: #1f2937; color: #fff; padding: 8px 10px; text-align: right; border: 1px solid #374151; }
+  td { padding: 8px 10px; border: 1px solid #e5e7eb; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .neg { color: #dc2626; font-weight: 600; }
+  .pos { color: #16a34a; font-weight: 600; }
+  .note-row td { background: #f3f4f6 !important; font-size: 11px; color: #6b7280; }
+
+  /* Progress bars */
+  .bar-wrap { margin-bottom: 16px; }
+  .bar-label { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+  .bar-bg { background: #e5e7eb; border-radius: 99px; height: 12px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 99px; }
+  .bar-note { font-size: 11px; color: #6b7280; margin-top: 3px; }
+
+  /* Risk rows */
+  .risk-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; padding: 10px 12px; border-radius: 10px; border: 1px solid; margin-bottom: 8px; font-size: 13px; }
+  .risk-row .detail { font-size: 11px; color: #6b7280; margin-top: 2px; }
+  .risk-high2 { background: #fef2f2; border-color: #fca5a5; }
+  .risk-high  { background: #fef2f2; border-color: #f87171; }
+  .risk-med   { background: #fff7ed; border-color: #fdba74; }
+  .risk-good  { background: #f0fdf4; border-color: #6ee7b7; }
+  .badge-sev { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+  .sev-red2  { background: #fee2e2; color: #991b1b; }
+  .sev-red   { background: #fee2e2; color: #b91c1c; }
+  .sev-ora   { background: #ffedd5; color: #9a3412; }
+  .sev-grn   { background: #dcfce7; color: #166534; }
+
+  /* Summary dark box */
+  .summary { background: #1f2937; color: #f9fafb; border-radius: 14px; padding: 20px; }
+  .summary h2 { font-size: 16px; font-weight: 700; margin-bottom: 12px; }
+  .summary p { font-size: 13px; margin-bottom: 8px; }
+  .summary .footer-note { font-size: 11px; color: #9ca3af; margin-top: 10px; }
+
+  /* Metric boxes */
+  .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .metric-box { border-radius: 10px; padding: 12px; border: 1px solid; }
+  .metric-box .ml { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
+  .metric-box .mv { font-size: 20px; font-weight: 700; }
+  .metric-box .ms { font-size: 11px; color: #6b7280; margin-top: 4px; }
+  .mb-red  { background: #fef2f2; border-color: #fca5a5; }
+  .mb-red .mv { color: #dc2626; }
+  .mb-ora  { background: #fff7ed; border-color: #fdba74; }
+  .mb-ora .mv { color: #ea580c; }
+
+  canvas { max-height: 260px; }
+  .source { text-align: center; font-size: 11px; color: #9ca3af; margin-top: 20px; }
+
+  /* section hidden */
+  .section { display: none; }
+  .section.active { display: block; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <h1>אקסון ויז'ן | Axon Vision</h1>
+      <p>ניתוח פיננסי | מקור: דוחות IFRS מתוך מאיה (MAGNA)</p>
+    </div>
+    <div class="badges">
+      <span class="badge badge-blue">מס' 1227552 | AXN</span>
+      <span class="badge badge-yellow">⚠️ הפסדית – גרעון הון</span>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(0)">סקירת KPI</div>
+    <div class="tab" onclick="showTab(1)">רווח והפסד</div>
+    <div class="tab" onclick="showTab(2)">שיעורי רווחיות</div>
+    <div class="tab" onclick="showTab(3)">מאזן</div>
+    <div class="tab" onclick="showTab(4)">תזרים וסיכונים</div>
+  </div>
+
+  <!-- SECTION 0: KPI -->
+  <div class="section active" id="s0">
+    <div class="kpi-grid">
+      <div class="kpi kpi-blue"><div class="lbl">הכנסות שנתי 2024</div><div class="val">₪15.9M</div><div class="note">לפי IFRS</div></div>
+      <div class="kpi kpi-blue"><div class="lbl">הכנסות H1 2025</div><div class="val">₪7.75M</div><div class="note">חצי שנה בלבד</div></div>
+      <div class="kpi kpi-green"><div class="lbl">רווח גולמי 2024</div><div class="val">₪7.4M</div><div class="note">מרווח 46.6%</div></div>
+      <div class="kpi kpi-green"><div class="lbl">רווח גולמי H1 2025</div><div class="val">₪3.86M</div><div class="note">מרווח 49.8% ✅</div></div>
+      <div class="kpi kpi-red"><div class="lbl">הפסד תפעולי 2024</div><div class="val">(₪2.31M)</div><div class="note">14.6% מהכנסות-</div></div>
+      <div class="kpi kpi-red2"><div class="lbl">הפסד תפעולי H1 2025</div><div class="val">(₪3.43M)</div><div class="note">⚠️ הידרדרות חדה</div></div>
+      <div class="kpi kpi-red"><div class="lbl">הפסד נקי 2024</div><div class="val">(₪2.88M)</div><div class="note">רו"נ למניה: (71.64) א'</div></div>
+      <div class="kpi kpi-red2"><div class="lbl">הפסד נקי H1 2025</div><div class="val">(₪3.54M)</div><div class="note">רו"נ למניה: (87.94) א'</div></div>
+      <div class="kpi kpi-orange"><div class="lbl">הון עצמי 2024</div><div class="val">(₪3.83M)</div><div class="note">גרעון בהון</div></div>
+      <div class="kpi kpi-orange"><div class="lbl">הון עצמי H1 2025</div><div class="val">(₪6.37M)</div><div class="note">⚠️ הגרעון גדל</div></div>
+      <div class="kpi kpi-yellow"><div class="lbl">תזרים שוטף 2024</div><div class="val">(₪969K)</div><div class="note">שריפת מזומנים</div></div>
+      <div class="kpi kpi-yellow"><div class="lbl">תזרים שוטף H1 2025</div><div class="val">(₪640K)</div><div class="note">מתמתן מעט</div></div>
+    </div>
+    <div class="card">
+      <h2>🔍 ממצאים קריטיים מהדוחות</h2>
+      <div class="insight ins-green"><span class="icon">✅</span><div><strong>מרווח גולמי בריא ומשתפר</strong>מ-46.6% ב-2024 ל-49.8% ב-H1 2025 — מעיד על מודל תמחור חזק לתוכנה/AI</div></div>
+      <div class="insight ins-red"><span class="icon">🔴</span><div><strong>הידרדרות חמורה בהפסד התפעולי</strong>H1 2025: הפסד תפעולי ₪3.43M — כמעט שווה להפסד התפעולי של כל 2024. בקצב שנתי: ₪6.85M הפסד תפעולי ב-2025</div></div>
+      <div class="insight ins-red"><span class="icon">🔴</span><div><strong>גרעון הון גדל מהר</strong>מ-(₪3.83M) בסוף 2024 ל-(₪6.37M) ב-H1 2025 — גידול של 66% בגרעון תוך חצי שנה</div></div>
+      <div class="insight ins-orange"><span class="icon">⚠️</span><div><strong>הכנסות H1 2025 ללא צמיחה</strong>₪7.75M בחצי שנה → קצב שנתי של ₪15.5M — כמעט זהה ל-2024 (₪15.9M)</div></div>
+      <div class="insight ins-blue"><span class="icon">ℹ️</span><div><strong>התחייבויות שוטפות זינקו</strong>מ-₪7.73M (2024) ל-₪11.76M (H1 2025) — גידול של 52%</div></div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: P&L -->
+  <div class="section" id="s1">
+    <div class="card">
+      <h2>השוואת רווח והפסד (אלפי ₪)</h2>
+      <p class="sub">שנתי 2024 לעומת H1 2025 (חצי שנה!) ולעומת H1 2025 בקצב שנתי</p>
+      <canvas id="plChart"></canvas>
+    </div>
+    <div class="card">
+      <h2>📋 טבלת רווח והפסד מפורטת (אלפי ₪)</h2>
+      <table>
+        <thead><tr><th>שורה</th><th>שנתי 2024</th><th>H1 2025</th><th>שינוי (שנתי)</th></tr></thead>
+        <tbody>
+          <tr><td>הכנסות</td><td>₪15,865</td><td>₪7,754</td><td>-2%</td></tr>
+          <tr><td>רווח גולמי</td><td class="pos">₪7,393</td><td class="pos">₪3,862</td><td class="pos">+5%</td></tr>
+          <tr><td>שיעור רווח גולמי</td><td class="pos">46.6%</td><td class="pos">49.8%</td><td class="pos">↑</td></tr>
+          <tr><td>רווח תפעולי</td><td class="neg">(₪2,310)</td><td class="neg">(₪3,425)</td><td class="neg">+196%</td></tr>
+          <tr><td>הוצאות מימון נטו</td><td class="neg">(₪736)</td><td class="neg">(₪197)</td><td>—</td></tr>
+          <tr><td>רווח לפני מס</td><td class="neg">(₪3,046)</td><td class="neg">(₪3,622)</td><td class="neg">+138%</td></tr>
+          <tr><td>רווח נקי</td><td class="neg">(₪2,877)</td><td class="neg">(₪3,542)</td><td class="neg">+146%</td></tr>
+          <tr><td>רו"נ בסיסי למניה (אגורות)</td><td class="neg">(71.64)</td><td class="neg">(87.94)</td><td class="neg">↓</td></tr>
+          <tr><td>תזרים נטו מפעילות שוטפת</td><td class="neg">(₪969)</td><td class="neg">(₪640)</td><td class="pos">שיפור</td></tr>
+        </tbody>
+      </table>
+      <p style="font-size:11px;color:#9ca3af;margin-top:8px">* עמודת "שינוי" מציגה שינוי בין שנתי 2024 לבין H1 2025 בקצב שנתי (×2)</p>
+    </div>
+    <div class="insight ins-amber" style="border-radius:12px;border:1px solid #fcd34d;">
+      <span class="icon">🔑</span>
+      <div><strong>תובנה מרכזית</strong>המרווח הגולמי מצוין (מעל 46%), אך עלויות ה-OpEx עלו בחדות ב-H1 2025. ייתכן שהדבר משקף השקעה מכוונת לאחר ההנפקה, אך הוא מייצר לחץ קשה על ה-Burn Rate.</div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Margins -->
+  <div class="section" id="s2">
+    <div class="card">
+      <h2>שיעורי רווחיות לפי תקופה (%)</h2>
+      <canvas id="marginChart"></canvas>
+    </div>
+    <div class="card">
+      <h2>📊 ניתוח שיעורי הרווחיות</h2>
+      <div class="bar-wrap">
+        <div class="bar-label"><span style="color:#16a34a;font-weight:600">שיעור רווח גולמי</span><span style="color:#16a34a;font-weight:700">46.6% → 49.8% ✅</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width:49.8%;background:#10b981"></div></div>
+        <div class="bar-note">מרווח גבוה לחברת תוכנה/AI — מעיד על כוח תמחור וצמיחה בשיתוף הכנסות מרישיונות</div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label"><span style="color:#dc2626;font-weight:600">שיעור הפסד תפעולי</span><span style="color:#dc2626;font-weight:700">14.6%- → 44.2%- ⚠️</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width:44.2%;background:#ef4444"></div></div>
+        <div class="bar-note">הפסד תפעולי גדל פי 3 כאחוז מהכנסות — הוצאות תפעול עלו מהר מהכנסות</div>
+      </div>
+      <div class="bar-wrap">
+        <div class="bar-label"><span style="color:#b91c1c;font-weight:600">שיעור הפסד נקי</span><span style="color:#b91c1c;font-weight:700">18.1%- → 45.7%- 🔴</span></div>
+        <div class="bar-bg"><div class="bar-fill" style="width:45.7%;background:#dc2626"></div></div>
+        <div class="bar-note">על כל ₪1 הכנסה — החברה מפסידה כ-46 אגורות נקי (H1 2025)</div>
+      </div>
+      <div class="insight ins-amber" style="border-radius:10px;border:1px solid #fcd34d;margin-top:8px">
+        <span class="icon">📌</span>
+        <div><strong>פרדוקס הרווחיות</strong>המרווח הגולמי <strong>עולה</strong> (טוב!), אך ההפסד התפעולי <strong>גדל בחדות</strong>. הפער נובע מעלייה בהוצאות OpEx: שכר, מו"פ, שיווק — ככל הנראה השקעה אגרסיבית בגלובליזציה לאחר ההנפקה.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Balance -->
+  <div class="section" id="s3">
+    <div class="card">
+      <h2>מאזן: נכסים לעומת התחייבויות (אלפי ₪)</h2>
+      <canvas id="balChart"></canvas>
+    </div>
+    <div class="card">
+      <h2>📋 מאזן מפורט (אלפי ₪)</h2>
+      <table>
+        <thead><tr><th>סעיף</th><th>סוף 2024</th><th>H1 2025</th><th>שינוי</th></tr></thead>
+        <tbody>
+          <tr><td>סך מאזן</td><td>₪5,712</td><td>₪7,963</td><td class="pos">+39%</td></tr>
+          <tr><td>נכסים שוטפים</td><td>₪4,261</td><td>₪6,056</td><td class="pos">+42%</td></tr>
+          <tr><td>נכסים בלתי שוטפים</td><td>₪1,451</td><td>₪1,907</td><td class="pos">+31%</td></tr>
+          <tr class="note-row"><td colspan="4">— — —</td></tr>
+          <tr><td>התחייבויות שוטפות</td><td class="neg">₪7,726</td><td class="neg">₪11,759</td><td class="neg">+52%</td></tr>
+          <tr><td>התחייבויות בלתי שוטפות</td><td class="neg">₪1,820</td><td class="neg">₪2,576</td><td class="neg">+42%</td></tr>
+          <tr><td><strong>סה"כ התחייבויות</strong></td><td class="neg"><strong>₪9,546</strong></td><td class="neg"><strong>₪14,335</strong></td><td class="neg">+50%</td></tr>
+          <tr class="note-row"><td colspan="4">— — —</td></tr>
+          <tr><td><strong>הון עצמי (גרעון)</strong></td><td class="neg"><strong>(₪3,834)</strong></td><td class="neg"><strong>(₪6,372)</strong></td><td class="neg">-66%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="metric-grid">
+      <div class="metric-box mb-red">
+        <div class="ml">יחס שוטף (Current Ratio)</div>
+        <div class="mv">0.55</div>
+        <div class="ms">נכסים שוטפים ÷ התחייבויות שוטפות = 6,056 ÷ 11,759<br><strong>⚠️ מתחת ל-1 = בעיית נזילות!</strong></div>
+      </div>
+      <div class="metric-box mb-ora">
+        <div class="ml">יחס חוב להון (D/E)</div>
+        <div class="mv" style="color:#ea580c">שלילי</div>
+        <div class="ms">הון עצמי שלילי — יחס D/E אינו מחושב.<br>סך חוב ₪14.3M מול הון שלילי ₪(6.4M)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Cashflow & Risk -->
+  <div class="section" id="s4">
+    <div class="card">
+      <h2>תזרים מזומנים נטו מפעילות שוטפת (אלפי ₪)</h2>
+      <canvas id="cfChart"></canvas>
+    </div>
+    <div class="card">
+      <h2>💰 ניתוח Burn Rate ונזילות</h2>
+      <div class="metric-grid" style="margin-bottom:12px">
+        <div class="metric-box mb-red">
+          <div class="ml">תזרים שוטף שנתי 2024</div>
+          <div class="mv">(₪969K)</div>
+          <div class="ms">שריפה של כ-₪80K/חודש</div>
+        </div>
+        <div class="metric-box mb-red">
+          <div class="ml">תזרים שוטף H1 2025</div>
+          <div class="mv">(₪640K)</div>
+          <div class="ms">שריפה של כ-₪107K/חודש</div>
+        </div>
+      </div>
+      <div class="insight ins-blue">
+        <span class="icon">💡</span>
+        <div><strong>השפעת ההנפקה (אוגוסט 2025)</strong>החברה גייסה ₪40M נקי לאחר ההנפקה. בקצב שריפה של ₪1.3M/שנה (תזרים שוטף), יש Runway ארוך — אולם ההפסד הנקי בקצב H1 2025 עומד על כ-₪7M/שנה, מה שמקצר את אופק הנזילות האמיתי.</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>🚨 מפת סיכונים — מהדוחות</h2>
+      <div class="risk-row risk-high2"><div><strong>גרעון הון עצמי גדל</strong><div class="detail">מ-(₪3.8M) ל-(₪6.4M) תוך חצי שנה — הגרעון גדל ב-₪2.5M ב-6 חודשים</div></div><span class="badge-sev sev-red2">גבוה מאוד</span></div>
+      <div class="risk-row risk-high"><div><strong>יחס שוטף 0.55</strong><div class="detail">התחייבויות שוטפות גדולות פי ~2 מהנכסים השוטפים — בעיית נזילות אמיתית</div></div><span class="badge-sev sev-red">גבוה</span></div>
+      <div class="risk-row risk-high"><div><strong>הפסד תפעולי בקצב עולה</strong><div class="detail">H1 2025: ₪3.4M הפסד תפעולי = כמעט כל הפסד 2024 בחצי שנה</div></div><span class="badge-sev sev-red">גבוה</span></div>
+      <div class="risk-row risk-med"><div><strong>הכנסות ללא צמיחה</strong><div class="detail">H1 2025 = ₪7.75M → קצב שנתי ₪15.5M — כמעט ללא צמיחה על 2024</div></div><span class="badge-sev sev-ora">בינוני-גבוה</span></div>
+      <div class="risk-row risk-med"><div><strong>עלייה בהתחייבויות שוטפות</strong><div class="detail">+52% בהתחייבויות שוטפות: מ-₪7.7M ל-₪11.8M</div></div><span class="badge-sev sev-ora">בינוני-גבוה</span></div>
+      <div class="risk-row risk-good"><div><strong>מרווח גולמי משתפר</strong><div class="detail">49.8% ב-H1 2025 — נקודת חוזק משמעותית למודל העסקי</div></div><span class="badge-sev sev-grn">✅ חיובי</span></div>
+    </div>
+    <div class="summary">
+      <h2>📌 סיכום אנליטי</h2>
+      <p>✅ <strong style="color:#4ade80">מרווח גולמי ~50%</strong> — בסיס חזק למודל רישיון תוכנה</p>
+      <p>🔴 <strong style="color:#f87171">OpEx מתפרץ</strong> — הפסד תפעולי בקצב שנתי של ₪6.85M ב-2025</p>
+      <p>🔴 <strong style="color:#f87171">הון עצמי שלילי ומחמיר</strong> — ₪(6.4M) ב-H1 2025</p>
+      <p>⚠️ <strong style="color:#fbbf24">הכנסות לא צומחות</strong> — ₪15.5M קצב שנתי vs ₪15.9M ב-2024</p>
+      <p>ℹ️ <strong style="color:#60a5fa">נזילות מוגנת</strong> — ₪40M גויסו בהנפקה, מספקים מרווח זמן</p>
+      <p class="footer-note">המסקנה: החברה בשלב "שריפת גרעון-לצמיחה" — ההשקעה בהוצאות תפעוליות חייבת להסתיים בהכנסות גדלות ב-H2 2025, אחרת תתעורר שאלת ה-Going Concern.</p>
+    </div>
+  </div>
+
+  <p class="source">מקור: דוחות IFRS רשמיים ממאיה (MAGNA) | אקסון ויז'ן בע"מ | מס' 1227552</p>
+</div>
+
+<script>
+const tabEls = document.querySelectorAll('.tab');
+const sections = document.querySelectorAll('.section');
+let charts = {};
+
+function showTab(i) {
+  tabEls.forEach((t,j) => t.classList.toggle('active', i===j));
+  sections.forEach((s,j) => s.classList.toggle('active', i===j));
+  if (i===1 && !charts.pl)  buildPL();
+  if (i===2 && !charts.mar) buildMargin();
+  if (i===3 && !charts.bal) buildBal();
+  if (i===4 && !charts.cf)  buildCF();
+}
+
+const FONT = "'Segoe UI', Arial, sans-serif";
+Chart.defaults.font.family = FONT;
+Chart.defaults.plugins.legend.labels.font = { family: FONT, size: 12 };
+
+function buildPL() {
+  const ctx = document.getElementById('plChart').getContext('2d');
+  charts.pl = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['הכנסות','רווח גולמי','רווח תפעולי','רווח נקי'],
+      datasets: [
+        { label: 'שנתי 2024', data: [15865,7393,-2310,-2877], backgroundColor: '#3b82f6', borderRadius: 4 },
+        { label: 'H1 2025 (בפועל)', data: [7754,3862,-3425,-3542], backgroundColor: '#f97316', borderRadius: 4 },
+        { label: 'H1 2025 (קצב שנתי)', data: [15508,7724,-6850,-7084], backgroundColor: 'rgba(239,68,68,0.7)', borderRadius: 4 },
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { ticks: { callback: v => `₪${(v/1000).toFixed(0)}M` } } } }
+  });
+}
+
+function buildMargin() {
+  const ctx = document.getElementById('marginChart').getContext('2d');
+  charts.mar = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['שנתי 2024','H1 2025'],
+      datasets: [
+        { label: 'שיעור רווח גולמי %', data: [46.6,49.8], backgroundColor: '#10b981', borderRadius: 4 },
+        { label: 'שיעור הפסד תפעולי %', data: [-14.6,-44.2], backgroundColor: '#ef4444', borderRadius: 4 },
+        { label: 'שיעור הפסד נקי %', data: [-18.1,-45.7], backgroundColor: '#dc2626', borderRadius: 4, opacity: 0.7 },
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { min: -60, max: 60, ticks: { callback: v => v+'%' } } } }
+  });
+}
+
+function buildBal() {
+  const ctx = document.getElementById('balChart').getContext('2d');
+  charts.bal = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['נכסים שוטפים','נכסים בלתי שוטפים','התח\' שוטפות','התח\' בלתי שוטפות','הון עצמי'],
+      datasets: [
+        { label: 'סוף 2024', data: [4261,1451,-7726,-1820,-3834], backgroundColor: '#3b82f6', borderRadius: 4 },
+        { label: 'H1 2025',  data: [6056,1907,-11759,-2576,-6372], backgroundColor: '#f97316', borderRadius: 4 },
+      ]
+    },
+    options: { responsive: true, plugins: { legend: { position: 'top' } }, scales: { y: { ticks: { callback: v => `₪${(v/1000).toFixed(0)}M` } } } }
+  });
+}
+
+function buildCF() {
+  const ctx = document.getElementById('cfChart').getContext('2d');
+  charts.cf = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['שנתי 2024','H1 2025'],
+      datasets: [{ label: 'תזרים נטו (אלפי ₪)', data: [-969,-640], backgroundColor: ['#ef4444','#f97316'], borderRadius: 4 }]
+    },
+    options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { ticks: { callback: v => `₪${v}K` } } } }
+  });
+}
+</script>
+</body>
+</html>
